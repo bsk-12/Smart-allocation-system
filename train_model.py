@@ -4,82 +4,77 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from google.colab import files
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
 import joblib
-joblib.dump(label_encoders, "encoders.pkl")
-files.download("resource_model.pkl")
-from google.colab import files
-files.download("encoders.pkl")
+
 # =========================
 # 2. LOAD DATASET
 # =========================
-df = pd.read_csv("resource_allocation_dataset.csv")
-
+df = pd.read_csv("/content/renamed_delivery_dataset.csv")  # use your file name
+df.head()
 print("✅ Dataset Loaded")
 print(df.head())
 
 # =========================
-# 3. ENCODE CATEGORICAL DATA
+# 3. CLEAN COLUMN NAMES
+# =========================
+df.columns = df.columns.str.strip()
+
+# =========================
+# 4. ENCODE CATEGORICAL DATA
 # =========================
 label_encoders = {}
 
 categorical_cols = [
-    "skill_level",
-    "location",
-    "task_type",
-    "task_complexity",
-    "required_skill"
+    "delivery_partner",
+    "package_type",
+    "vehicle_type",
 ]
 
 for col in categorical_cols:
     le = LabelEncoder()
     df[col] = le.fit_transform(df[col])
-    label_encoders[col] = le   # Save encoder for later use
+    label_encoders[col] = le
 
 print("✅ Encoding Done")
 
 # =========================
-# 4. DEFINE FEATURES & TARGET
+# 5. DEFINE FEATURES & TARGET
 # =========================
-X = df.drop(["resource_id", "match"], axis=1)
-y = df["match"]
+X = df.drop(["delay"], axis=1)
+y = df["delay"]
 
 # =========================
-# 5. TRAIN-TEST SPLIT
+# 6. TRAIN-TEST SPLIT
 # =========================
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
 # =========================
-# 6. TRAIN MODEL
+# 7. TRAIN MODEL (REGRESSION)
 # =========================
-model = RandomForestClassifier(n_estimators=100, random_state=42)
+model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
 print("✅ Model Trained")
 
 # =========================
-# 7. EVALUATE MODEL
+# 8. EVALUATE MODEL
 # =========================
 y_pred = model.predict(X_test)
 
-accuracy = accuracy_score(y_test, y_pred)
-print(f"✅ Accuracy: {accuracy:.2f}")
+mae = mean_absolute_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-print("\n📊 Classification Report:")
-print(classification_report(y_test, y_pred))
-
-print("\n📌 Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
+print(f"\n📊 Mean Absolute Error: {mae:.2f}")
+print(f"📈 R2 Score: {r2:.2f}")
 
 # =========================
-# 8. SAVE MODEL (IMPORTANT)
+# 9. SAVE MODEL & ENCODERS
 # =========================
-import joblib
+joblib.dump(model, "diamond_price_model.pkl")
+joblib.dump(label_encoders, "encoders.pkl")
 
-joblib.dump(model, "resource_model.pkl")
-
-print("✅ Model Saved as resource_model.pkl")
+print("✅ Model & Encoders Saved")
